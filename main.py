@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from data_prep import load_data, get_daily_usage, get_daily_avg_level
 from model import forecast_series
-from pump_model import train_pump_model, predict_pump_status
 from refill_prediction import predict_next_pump_on, predict_water_finish
 
 app = FastAPI(title="Water Tank Prediction API")
@@ -23,7 +22,7 @@ DATA_FILE = "water_data.csv"
 
 @app.get("/")
 def root():
-    return {"status": "running", "endpoints": ["/predict/usage", "/predict/level", "/predict/pump"]}
+    return {"status": "running", "endpoints": ["/predict/usage", "/predict/level", "/predict/next-refill", "/predict/water-finish"]}
 
 
 @app.get("/predict/usage")
@@ -44,17 +43,6 @@ def predict_level(days_ahead: int = 7):
         daily_level = get_daily_avg_level(df)
         predictions = forecast_series(daily_level, days_ahead)
         return {"type": "water_level_percent", "predictions": predictions}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/predict/pump")
-def predict_pump(water_level: float):
-    try:
-        df = load_data(DATA_FILE)
-        model = train_pump_model(df)
-        status = predict_pump_status(model, water_level)
-        return {"water_level": water_level, "predicted_pump_status": status}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
